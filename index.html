@@ -478,17 +478,17 @@
     return id;
   }
 
-  function freshGameState() {
-    return {
-      boards: Array.from({ length: 9 }, () => Array(9).fill(null)),
-      boardWinners: Array(9).fill(null),
-      forcedBoard: null,
-      turn: 'X',
-      finished: false,
-      winner: null,
-      winningLine: null
-    };
-  }
+function freshGameState() {
+  return {
+    boards: Array.from({ length: 9 }, () => Array(9).fill(0)),
+    boardWinners: Array(9).fill(0),
+    forcedBoard: -1,
+    turn: 'X',
+    finished: false,
+    winner: 0,
+    winningLine: 0
+  };
+}
 
   function applyGameStateToLocal(g) {
     state.boards = g.boards.map(b => b.slice());
