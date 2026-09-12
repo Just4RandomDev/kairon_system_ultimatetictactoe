@@ -999,10 +999,19 @@
       state.winner = local.winner;
       state.winningLine = local.winningLine;
 
-      els.screenMode.classList.add('hidden');
-      els.screenLobby.classList.add('hidden');
-      els.screenGame.classList.remove('hidden');
-      render();
+      const opponentJoined = data.players && data.players.O && data.players.O.id && data.players.O.id !== EMPTY;
+
+      if (opponentJoined) {
+        els.screenMode.classList.add('hidden');
+        els.screenLobby.classList.add('hidden');
+        els.screenGame.classList.remove('hidden');
+        render();
+      } else {
+        els.screenMode.classList.add('hidden');
+        els.screenLobby.classList.remove('hidden');
+        els.lobbyStart.classList.add('hidden');
+        els.lobbyCreate.classList.remove('hidden');
+      }
     }, err => {
       console.error('Firebase read error:', err);
     });
