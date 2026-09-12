@@ -427,6 +427,9 @@
   ];
   const BOT_DELAY_MS = 500;
   const ROOM_TTL_MS = 60 * 60 * 1000;
+  const EMPTY = 0;
+  const NO_FORCED = -1;
+  const NO_WINNER = 0;
 
   const state = {
     mode: null,
@@ -478,37 +481,70 @@
     return id;
   }
 
-function freshGameState() {
-  return {
-    boards: Array.from({ length: 9 }, () => Array(9).fill(0)),
-    boardWinners: Array(9).fill(0),
-    forcedBoard: -1,
-    turn: 'X',
-    finished: false,
-    winner: 0,
-    winningLine: 0
-  };
-}
-
-  function applyGameStateToLocal(g) {
-    state.boards = g.boards.map(b => b.slice());
-    state.boardWinners = g.boardWinners.slice();
-    state.forcedBoard = g.forcedBoard;
-    state.turn = g.turn;
-    state.finished = g.finished;
-    state.winner = g.winner;
-    state.winningLine = g.winningLine || null;
+  function freshLocalGame() {
+    return {
+      boards: Array.from({ length: 9 }, () => Array(9).fill(null)),
+      boardWinners: Array(9).fill(null),
+      forcedBoard: null,
+      turn: 'X',
+      finished: false,
+      winner: null,
+      winningLine: null
+    };
   }
 
-  function serializeLocalGame() {
+  function freshFirebaseGame() {
     return {
-      boards: state.boards,
-      boardWinners: state.boardWinners,
-      forcedBoard: state.forcedBoard,
+      boards: Array.from({ length: 9 }, () => Array(9).fill(EMPTY)),
+      boardWinners: Array(9).fill(EMPTY),
+      forcedBoard: NO_FORCED,
+      turn: 'X',
+      finished: false,
+      winner: NO_WINNER,
+      winningLine: NO_WINNER
+    };
+  }
+
+  function firebaseToLocal(g) {
+    const rawBoards = Array.isArray(g.boards) ? g.boards : [];
+    const boards = [];
+    for (let b = 0; b < 9; b++) {
+      const row = [];
+      const src = Array.isArray(rawBoards[b]) ? rawBoards[b] : [];
+      for (let c = 0; c < 9; c++) {
+        const v = src[c];
+        row.push(v === EMPTY || v === null || v === undefined || v === '' ? null : v);
+      }
+      boards.push(row);
+    }
+
+    const rawWinners = Array.isArray(g.boardWinners) ? g.boardWinners : [];
+    const boardWinners = [];
+    for (let i = 0; i < 9; i++) {
+      const v = rawWinners[i];
+      boardWinners.push(v === EMPTY || v === null || v === undefined || v === '' ? null : v);
+    }
+
+    return {
+      boards,
+      boardWinners,
+      forcedBoard: (g.forcedBoard === NO_FORCED || g.forcedBoard === null || g.forcedBoard === undefined) ? null : g.forcedBoard,
+      turn: g.turn || 'X',
+      finished: !!g.finished,
+      winner: (g.winner === NO_WINNER || g.winner === null || g.winner === undefined || g.winner === '') ? null : g.winner,
+      winningLine: (g.winningLine === NO_WINNER || g.winningLine === null || g.winningLine === undefined || g.winningLine === '') ? null : g.winningLine
+    };
+  }
+
+  function localToFirebase() {
+    return {
+      boards: state.boards.map(b => b.map(v => v === null ? EMPTY : v)),
+      boardWinners: state.boardWinners.map(v => v === null ? EMPTY : v),
+      forcedBoard: state.forcedBoard === null ? NO_FORCED : state.forcedBoard,
       turn: state.turn,
       finished: state.finished,
-      winner: state.winner,
-      winningLine: state.winningLine
+      winner: state.winner === null ? NO_WINNER : state.winner,
+      winningLine: state.winningLine === null ? NO_WINNER : state.winningLine
     };
   }
 
@@ -734,7 +770,7 @@ function freshGameState() {
     placeMove(boardIdx, cellIdx, state.turn);
 
     if (state.mode === 'online') {
-      state.online.ref.update(serializeLocalGame()).catch(err => console.error('update error:', err));
+      state.online.ref.update(localToFirebase()).catch(err => console.error('update error:', err));
     } else {
       render();
       maybeBotMove();
@@ -871,13 +907,14 @@ function freshGameState() {
       const ref = db.ref('rooms/' + code);
       const snapshot = await ref.once('value');
       if (!snapshot.exists()) {
-        const initial = Object.assign(freshGameState(), {
+        const game = freshFirebaseGame();
+        const initial = Object.assign({}, game, {
           createdAt: Date.now(),
+          lastMoveAt: Date.now(),
           players: {
             X: { id: myId, joinedAt: Date.now() },
-            O: null
-          },
-          lastMoveAt: Date.now()
+            O: { id: EMPTY, joinedAt: EMPTY }
+          }
         });
         await ref.set(initial);
         enterOnlineRoom(code, 'X', ref);
@@ -915,7 +952,7 @@ function freshGameState() {
       enterOnlineRoom(cleanCode, 'O', ref);
       return;
     }
-    if (data.players && data.players.O) {
+    if (data.players && data.players.O && data.players.O.id && data.players.O.id !== EMPTY) {
       els.joinStatus.textContent = 'Esa sala ya está llena.';
       return;
     }
@@ -941,8 +978,15 @@ function freshGameState() {
         return;
       }
       const data = snapshot.val();
-      if (!data.boards || !data.boardWinners) return;
-      applyGameStateToLocal(data);
+      const local = firebaseToLocal(data);
+      state.boards = local.boards;
+      state.boardWinners = local.boardWinners;
+      state.forcedBoard = local.forcedBoard;
+      state.turn = local.turn;
+      state.finished = local.finished;
+      state.winner = local.winner;
+      state.winningLine = local.winningLine;
+
       els.screenMode.classList.add('hidden');
       els.screenLobby.classList.add('hidden');
       els.screenGame.classList.remove('hidden');
@@ -968,7 +1012,7 @@ function freshGameState() {
         ref.child('players/' + mySymbol).once('value').then(snap => {
           const p = snap.val();
           if (p && p.id === myId) {
-            ref.child('players/' + mySymbol).remove().catch(() => {});
+            ref.child('players/' + mySymbol).set({ id: EMPTY, joinedAt: EMPTY }).catch(() => {});
           }
         }).catch(() => {});
       }
@@ -997,7 +1041,7 @@ function freshGameState() {
 
   els.btnBot.addEventListener('click', () => {
     state.mode = 'bot';
-    Object.assign(state, freshGameState(), { botThinking: false });
+    Object.assign(state, freshLocalGame(), { botThinking: false });
     els.screenMode.classList.add('hidden');
     els.screenLobby.classList.add('hidden');
     els.screenGame.classList.remove('hidden');
