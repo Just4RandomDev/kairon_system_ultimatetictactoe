@@ -13,10 +13,14 @@
     --text: #e8e8ec;
     --text-dim: #9a9aa2;
     --accent: #9C1F1F;
-    --accent-bright: #e23a3a;
+    --accent-hover: #c02a2a;
     --x: #e35d5d;
     --o: #5db6e3;
-    --cell-hover: #2c2c36;
+    --cell-hover: #24242c;
+    --board-forced: #2a1a1a;
+    --board-won-x: rgba(227, 93, 93, 0.15);
+    --board-won-o: rgba(93, 182, 227, 0.15);
+    --board-draw: rgba(120, 120, 130, 0.15);
   }
 
   * { box-sizing: border-box; }
@@ -77,7 +81,7 @@
     font-weight: 600;
     border-radius: 10px;
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition: all 0.15s ease;
     text-align: left;
     display: flex;
     align-items: center;
@@ -89,11 +93,13 @@
   .mode-btn:hover {
     border-color: var(--accent);
     background: #1c1c22;
+    transform: translateY(-1px);
   }
 
   .mode-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
   }
 
   .mode-btn .emoji { font-size: 20px; }
@@ -132,7 +138,7 @@
     font-weight: 600;
     border-radius: 8px;
     cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition: all 0.15s ease;
     font-family: inherit;
   }
 
@@ -158,23 +164,22 @@
     gap: 3px;
     aspect-ratio: 1;
     position: relative;
+    transition: background 0.15s ease;
     border-radius: 6px;
     padding: 3px;
     background: var(--panel);
-    border: 2px solid transparent;
   }
 
   .small-board.playable { background: #202028; }
 
-  .small-board.won-x { background: rgba(227, 93, 93, 0.15); }
-  .small-board.won-o { background: rgba(93, 182, 227, 0.15); }
-  .small-board.draw { background: rgba(120, 120, 130, 0.15); }
-
   .small-board.forced {
-    background: rgba(156, 31, 31, 0.15);
-    border-color: var(--accent-bright);
-    box-shadow: 0 0 0 1px var(--accent-bright);
+    background: var(--board-forced);
+    box-shadow: 0 0 0 1px var(--accent) inset;
   }
+
+  .small-board.won-x { background: var(--board-won-x); }
+  .small-board.won-o { background: var(--board-won-o); }
+  .small-board.draw { background: var(--board-draw); }
 
   .cell {
     background: #141419;
@@ -188,13 +193,14 @@
     align-items: center;
     justify-content: center;
     padding: 0;
-    transition: background 0.1s ease;
+    transition: background 0.1s ease, transform 0.05s ease;
     aspect-ratio: 1;
     font-family: inherit;
   }
 
   .small-board.playable .cell:not(.taken):not(.disabled) { cursor: pointer; }
   .small-board.playable .cell:not(.taken):not(.disabled):hover { background: var(--cell-hover); }
+  .cell:active { transform: scale(0.96); }
   .cell.X { color: var(--x); }
   .cell.O { color: var(--o); }
   .cell.disabled { cursor: not-allowed; opacity: 0.9; }
@@ -211,8 +217,8 @@
     border-radius: 6px;
   }
 
-  .board-overlay.X { color: var(--x); opacity: 0.8; }
-  .board-overlay.O { color: var(--o); opacity: 0.8; }
+  .board-overlay.X { color: var(--x); opacity: 0.75; }
+  .board-overlay.O { color: var(--o); opacity: 0.75; }
   .board-overlay.draw {
     font-size: 26px;
     color: var(--text-dim);
@@ -225,13 +231,6 @@
     font-weight: 600;
     min-height: 22px;
     margin-bottom: 12px;
-    color: var(--text-dim);
-  }
-
-  .status.forced-status {
-    color: var(--accent-bright);
-    font-weight: 800;
-    font-size: 17px;
   }
 
   .result-banner {
@@ -241,6 +240,7 @@
     padding: 20px;
     text-align: center;
     margin-bottom: 16px;
+    animation: fadeIn 0.3s ease;
   }
 
   .result-banner .big {
@@ -259,6 +259,11 @@
   .result-banner.O .big { color: var(--o); }
   .result-banner.draw .big { color: var(--text-dim); }
 
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   .footer {
     margin-top: 32px;
     font-size: 11px;
@@ -272,6 +277,13 @@
   }
 
   .footer a:hover { text-decoration: underline; }
+
+  .small-board.winning { animation: pulse 1s ease-in-out infinite alternate; }
+
+  @keyframes pulse {
+    from { box-shadow: 0 0 0 2px rgba(156, 31, 31, 0.6) inset; }
+    to   { box-shadow: 0 0 0 2px rgba(156, 31, 31, 1) inset; }
+  }
 
   .lobby-box {
     background: var(--panel);
@@ -339,6 +351,12 @@
     border-radius: 50%;
     background: var(--accent);
     margin-right: 6px;
+    animation: blink 1.2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
   }
 </style>
 </head>
@@ -586,14 +604,11 @@
 
       if (canPlay) {
         boardDiv.classList.add('playable');
-      }
-
-      if (!state.finished && state.forcedBoard === b && won === null) {
-        boardDiv.classList.add('forced');
+        if (state.forcedBoard === b) boardDiv.classList.add('forced');
       }
 
       if (state.winningLine && state.winningLine.includes(b)) {
-        boardDiv.classList.add('forced');
+        boardDiv.classList.add('winning');
       }
 
       for (let c = 0; c < 9; c++) {
@@ -657,20 +672,16 @@
   function renderStatus() {
     if (state.finished) {
       els.status.textContent = '';
-      els.status.classList.remove('forced-status');
       return;
     }
     let text = '';
     if (state.mode === 'bot' && state.turn === 'O') {
       text = 'El bot está pensando...';
-      els.status.classList.remove('forced-status');
     } else if (state.forcedBoard !== null) {
       const letter = 'ABCDEFGHI'[state.forcedBoard];
       text = 'Juega en el tablero ' + letter;
-      els.status.classList.add('forced-status');
     } else {
       text = 'Elige cualquier tablero';
-      els.status.classList.remove('forced-status');
     }
     els.status.textContent = text;
   }
@@ -1020,15 +1031,9 @@
     els.screenLobby.classList.remove('hidden');
     els.lobbyCreate.classList.remove('hidden');
     els.lobbyJoin.classList.remove('hidden');
-    if (!state.online.roomCode) {
-      createRoom();
-    }
   });
 
   els.btnLobbyBack.addEventListener('click', () => {
-    if (state.online.roomCode) {
-      leaveRoom();
-    }
     els.screenLobby.classList.add('hidden');
     els.screenMode.classList.remove('hidden');
   });
@@ -1065,6 +1070,19 @@
     els.joinCode.value = urlCode.toUpperCase().slice(0, 4);
     joinRoom(urlCode);
   }
+
+  window.addEventListener('load', () => {
+    if (document.getElementById('lobby-create')) {
+      createRoom();
+    }
+  });
+
+  const originalOnlineClick = els.btnOnline.onclick;
+  els.btnOnline.addEventListener('click', () => {
+    if (!state.online.roomCode) {
+      createRoom();
+    }
+  });
 
 })();
 </script>
