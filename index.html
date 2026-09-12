@@ -944,4 +944,120 @@
       if (!data.boards || !data.boardWinners) return;
       applyGameStateToLocal(data);
       els.screenMode.classList.add('hidden');
-      els.screenLobby.classList.add('
+      els.screenLobby.classList.add('hidden');
+      els.screenGame.classList.remove('hidden');
+      render();
+    }, err => {
+      console.error('Firebase read error:', err);
+    });
+
+    state.online.handler = handler;
+
+    els.myCode.textContent = code;
+  }
+
+  function leaveRoom(silent) {
+    if (state.online.ref) {
+      const ref = state.online.ref;
+      const mySymbol = state.online.mySymbol;
+      const myId = state.online.myId;
+      if (state.online.handler) {
+        ref.off('value', state.online.handler);
+      }
+      if (mySymbol && myId) {
+        ref.child('players/' + mySymbol).once('value').then(snap => {
+          const p = snap.val();
+          if (p && p.id === myId) {
+            ref.child('players/' + mySymbol).remove().catch(() => {});
+          }
+        }).catch(() => {});
+      }
+    }
+
+    state.online.roomCode = null;
+    state.online.mySymbol = null;
+    state.online.ref = null;
+    state.online.handler = null;
+    state.mode = null;
+
+    els.screenGame.classList.add('hidden');
+    els.screenLobby.classList.add('hidden');
+    els.screenMode.classList.remove('hidden');
+    els.lobbyCreate.classList.remove('hidden');
+    els.lobbyJoin.classList.remove('hidden');
+    els.joinCode.value = '';
+    els.joinStatus.textContent = '';
+    els.createStatus.innerHTML = '<span class="dot"></span> Esperando a otro jugador...';
+    els.myCode.textContent = '----';
+
+    if (!silent) {
+      history.replaceState(null, '', location.pathname);
+    }
+  }
+
+  els.btnBot.addEventListener('click', () => {
+    state.mode = 'bot';
+    Object.assign(state, freshGameState(), { botThinking: false });
+    els.screenMode.classList.add('hidden');
+    els.screenLobby.classList.add('hidden');
+    els.screenGame.classList.remove('hidden');
+    render();
+    maybeBotMove();
+  });
+
+  els.btnOnline.addEventListener('click', () => {
+    els.screenMode.classList.add('hidden');
+    els.screenLobby.classList.remove('hidden');
+    els.lobbyCreate.classList.remove('hidden');
+    els.lobbyJoin.classList.remove('hidden');
+    if (!state.online.roomCode) {
+      createRoom();
+    }
+  });
+
+  els.btnLobbyBack.addEventListener('click', () => {
+    if (state.online.roomCode) {
+      leaveRoom();
+    }
+    els.screenLobby.classList.add('hidden');
+    els.screenMode.classList.remove('hidden');
+  });
+
+  els.btnJoin.addEventListener('click', () => {
+    joinRoom(els.joinCode.value);
+  });
+
+  els.joinCode.addEventListener('keydown', e => {
+    if (e.key === 'Enter') joinRoom(els.joinCode.value);
+  });
+
+  els.btnCopyCode.addEventListener('click', () => {
+    const code = els.myCode.textContent;
+    if (!code || code === '----') return;
+    navigator.clipboard.writeText(code).catch(() => {});
+    els.btnCopyCode.textContent = 'Copiado';
+    setTimeout(() => { els.btnCopyCode.textContent = 'Copiar código'; }, 1500);
+  });
+
+  els.btnRestart.addEventListener('click', () => {
+    if (state.mode === 'online') {
+      leaveRoom();
+    } else {
+      els.screenGame.classList.add('hidden');
+      els.screenMode.classList.remove('hidden');
+    }
+  });
+
+  const urlCode = (new URLSearchParams(location.search)).get('room');
+  if (urlCode) {
+    els.screenMode.classList.add('hidden');
+    els.screenLobby.classList.remove('hidden');
+    els.joinCode.value = urlCode.toUpperCase().slice(0, 4);
+    joinRoom(urlCode);
+  }
+
+})();
+</script>
+
+</body>
+</html>
