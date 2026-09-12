@@ -13,14 +13,10 @@
     --text: #e8e8ec;
     --text-dim: #9a9aa2;
     --accent: #9C1F1F;
-    --accent-hover: #c02a2a;
+    --accent-bright: #e23a3a;
     --x: #e35d5d;
     --o: #5db6e3;
-    --cell-hover: #24242c;
-    --board-forced: #2a1a1a;
-    --board-won-x: rgba(227, 93, 93, 0.15);
-    --board-won-o: rgba(93, 182, 227, 0.15);
-    --board-draw: rgba(120, 120, 130, 0.15);
+    --cell-hover: #2c2c36;
   }
 
   * { box-sizing: border-box; }
@@ -81,7 +77,6 @@
     font-weight: 600;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.15s ease;
     text-align: left;
     display: flex;
     align-items: center;
@@ -93,13 +88,6 @@
   .mode-btn:hover {
     border-color: var(--accent);
     background: #1c1c22;
-    transform: translateY(-1px);
-  }
-
-  .mode-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
   }
 
   .mode-btn .emoji { font-size: 20px; }
@@ -138,7 +126,6 @@
     font-weight: 600;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.15s ease;
     font-family: inherit;
   }
 
@@ -150,57 +137,58 @@
   .meta-board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     gap: 8px;
     background: var(--line-strong);
     padding: 8px;
     border-radius: 12px;
     margin-bottom: 16px;
     user-select: none;
+    aspect-ratio: 1;
   }
 
   .small-board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     gap: 3px;
-    aspect-ratio: 1;
     position: relative;
-    transition: background 0.15s ease;
     border-radius: 6px;
     padding: 3px;
     background: var(--panel);
+    border: 2px solid transparent;
   }
 
   .small-board.playable { background: #202028; }
 
-  .small-board.forced {
-    background: var(--board-forced);
-    box-shadow: 0 0 0 1px var(--accent) inset;
-  }
+  .small-board.won-x { background: rgba(227, 93, 93, 0.15); }
+  .small-board.won-o { background: rgba(93, 182, 227, 0.15); }
+  .small-board.draw { background: rgba(120, 120, 130, 0.15); }
 
-  .small-board.won-x { background: var(--board-won-x); }
-  .small-board.won-o { background: var(--board-won-o); }
-  .small-board.draw { background: var(--board-draw); }
+  .small-board.forced {
+    border-color: var(--accent-bright);
+    background: rgba(156, 31, 31, 0.15);
+  }
 
   .cell {
     background: #141419;
     border: none;
     border-radius: 4px;
     color: var(--text);
-    font-size: clamp(16px, 4vw, 26px);
+    font-size: clamp(12px, 3vw, 22px);
     font-weight: 700;
     cursor: default;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
-    transition: background 0.1s ease, transform 0.05s ease;
-    aspect-ratio: 1;
     font-family: inherit;
+    min-width: 0;
+    min-height: 0;
   }
 
   .small-board.playable .cell:not(.taken):not(.disabled) { cursor: pointer; }
   .small-board.playable .cell:not(.taken):not(.disabled):hover { background: var(--cell-hover); }
-  .cell:active { transform: scale(0.96); }
   .cell.X { color: var(--x); }
   .cell.O { color: var(--o); }
   .cell.disabled { cursor: not-allowed; opacity: 0.9; }
@@ -211,16 +199,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(40px, 10vw, 90px);
+    font-size: clamp(28px, 7vw, 60px);
     font-weight: 800;
     pointer-events: none;
     border-radius: 6px;
   }
 
-  .board-overlay.X { color: var(--x); opacity: 0.75; }
-  .board-overlay.O { color: var(--o); opacity: 0.75; }
+  .board-overlay.X { color: var(--x); opacity: 0.8; }
+  .board-overlay.O { color: var(--o); opacity: 0.8; }
   .board-overlay.draw {
-    font-size: 26px;
+    font-size: 22px;
     color: var(--text-dim);
     font-weight: 600;
   }
@@ -231,6 +219,13 @@
     font-weight: 600;
     min-height: 22px;
     margin-bottom: 12px;
+    color: var(--text-dim);
+  }
+
+  .status.forced-status {
+    color: var(--accent-bright);
+    font-weight: 800;
+    font-size: 17px;
   }
 
   .result-banner {
@@ -240,7 +235,6 @@
     padding: 20px;
     text-align: center;
     margin-bottom: 16px;
-    animation: fadeIn 0.3s ease;
   }
 
   .result-banner .big {
@@ -259,11 +253,6 @@
   .result-banner.O .big { color: var(--o); }
   .result-banner.draw .big { color: var(--text-dim); }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
   .footer {
     margin-top: 32px;
     font-size: 11px;
@@ -277,13 +266,6 @@
   }
 
   .footer a:hover { text-decoration: underline; }
-
-  .small-board.winning { animation: pulse 1s ease-in-out infinite alternate; }
-
-  @keyframes pulse {
-    from { box-shadow: 0 0 0 2px rgba(156, 31, 31, 0.6) inset; }
-    to   { box-shadow: 0 0 0 2px rgba(156, 31, 31, 1) inset; }
-  }
 
   .lobby-box {
     background: var(--panel);
@@ -351,12 +333,6 @@
     border-radius: 50%;
     background: var(--accent);
     margin-right: 6px;
-    animation: blink 1.2s ease-in-out infinite;
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
   }
 </style>
 </head>
@@ -467,8 +443,7 @@
       mySymbol: null,
       myId: null,
       ref: null,
-      unsubscribe: null,
-      isHost: false
+      handler: null
     }
   };
 
@@ -602,13 +577,10 @@
         !state.botThinking && myTurnOnline &&
         (state.mode !== 'online' || state.online.mySymbol);
 
-      if (canPlay) {
-        boardDiv.classList.add('playable');
-        if (state.forcedBoard === b) boardDiv.classList.add('forced');
-      }
+      if (canPlay) boardDiv.classList.add('playable');
 
-      if (state.winningLine && state.winningLine.includes(b)) {
-        boardDiv.classList.add('winning');
+      if (!state.finished && state.forcedBoard === b && won === null) {
+        boardDiv.classList.add('forced');
       }
 
       for (let c = 0; c < 9; c++) {
@@ -672,16 +644,20 @@
   function renderStatus() {
     if (state.finished) {
       els.status.textContent = '';
+      els.status.classList.remove('forced-status');
       return;
     }
     let text = '';
     if (state.mode === 'bot' && state.turn === 'O') {
       text = 'El bot está pensando...';
+      els.status.classList.remove('forced-status');
     } else if (state.forcedBoard !== null) {
       const letter = 'ABCDEFGHI'[state.forcedBoard];
       text = 'Juega en el tablero ' + letter;
+      els.status.classList.add('forced-status');
     } else {
       text = 'Elige cualquier tablero';
+      els.status.classList.remove('forced-status');
     }
     els.status.textContent = text;
   }
@@ -758,7 +734,7 @@
     placeMove(boardIdx, cellIdx, state.turn);
 
     if (state.mode === 'online') {
-      state.online.ref.update(serializeLocalGame()).catch(err => console.error(err));
+      state.online.ref.update(serializeLocalGame()).catch(err => console.error('update error:', err));
     } else {
       render();
       maybeBotMove();
@@ -954,9 +930,10 @@
     state.online.mySymbol = symbol;
     state.online.myId = getMyId();
     state.online.ref = ref;
-    state.online.isHost = symbol === 'X';
 
-    if (state.online.unsubscribe) state.online.unsubscribe();
+    if (state.online.handler) {
+      ref.off('value', state.online.handler);
+    }
 
     const handler = ref.on('value', snapshot => {
       if (!snapshot.exists()) {
@@ -964,128 +941,7 @@
         return;
       }
       const data = snapshot.val();
+      if (!data.boards || !data.boardWinners) return;
       applyGameStateToLocal(data);
       els.screenMode.classList.add('hidden');
-      els.screenLobby.classList.add('hidden');
-      els.screenGame.classList.remove('hidden');
-      render();
-    });
-    state.online.unsubscribe = () => ref.off('value', handler);
-
-    els.myCode.textContent = code;
-    els.lobbyCreate.classList.add('hidden');
-    els.lobbyJoin.classList.add('hidden');
-  }
-
-  function leaveRoom(silent) {
-    if (state.online.ref) {
-      const ref = state.online.ref;
-      const mySymbol = state.online.mySymbol;
-      const myId = state.online.myId;
-      if (mySymbol && myId) {
-        ref.child('players/' + mySymbol).once('value').then(snap => {
-          const p = snap.val();
-          if (p && p.id === myId) {
-            ref.child('players/' + mySymbol).remove().catch(() => {});
-          }
-        }).catch(() => {});
-      }
-      if (state.online.unsubscribe) {
-        state.online.unsubscribe();
-      }
-    }
-
-    state.online.roomCode = null;
-    state.online.mySymbol = null;
-    state.online.ref = null;
-    state.online.unsubscribe = null;
-    state.mode = null;
-
-    els.screenGame.classList.add('hidden');
-    els.screenLobby.classList.add('hidden');
-    els.screenMode.classList.remove('hidden');
-    els.lobbyCreate.classList.remove('hidden');
-    els.lobbyJoin.classList.remove('hidden');
-    els.joinCode.value = '';
-    els.joinStatus.textContent = '';
-    els.createStatus.innerHTML = '<span class="dot"></span> Esperando a otro jugador...';
-    els.myCode.textContent = '----';
-
-    if (!silent) {
-      history.replaceState(null, '', location.pathname);
-    }
-  }
-
-  els.btnBot.addEventListener('click', () => {
-    state.mode = 'bot';
-    Object.assign(state, freshGameState(), { botThinking: false });
-    els.screenMode.classList.add('hidden');
-    els.screenLobby.classList.add('hidden');
-    els.screenGame.classList.remove('hidden');
-    render();
-    maybeBotMove();
-  });
-
-  els.btnOnline.addEventListener('click', () => {
-    els.screenMode.classList.add('hidden');
-    els.screenLobby.classList.remove('hidden');
-    els.lobbyCreate.classList.remove('hidden');
-    els.lobbyJoin.classList.remove('hidden');
-  });
-
-  els.btnLobbyBack.addEventListener('click', () => {
-    els.screenLobby.classList.add('hidden');
-    els.screenMode.classList.remove('hidden');
-  });
-
-  els.btnJoin.addEventListener('click', () => {
-    joinRoom(els.joinCode.value);
-  });
-
-  els.joinCode.addEventListener('keydown', e => {
-    if (e.key === 'Enter') joinRoom(els.joinCode.value);
-  });
-
-  els.btnCopyCode.addEventListener('click', () => {
-    const code = els.myCode.textContent;
-    if (!code || code === '----') return;
-    navigator.clipboard.writeText(code).catch(() => {});
-    els.btnCopyCode.textContent = 'Copiado';
-    setTimeout(() => { els.btnCopyCode.textContent = 'Copiar código'; }, 1500);
-  });
-
-  els.btnRestart.addEventListener('click', () => {
-    if (state.mode === 'online') {
-      leaveRoom();
-    } else {
-      els.screenGame.classList.add('hidden');
-      els.screenMode.classList.remove('hidden');
-    }
-  });
-
-  const urlCode = (new URLSearchParams(location.search)).get('room');
-  if (urlCode) {
-    els.screenMode.classList.add('hidden');
-    els.screenLobby.classList.remove('hidden');
-    els.joinCode.value = urlCode.toUpperCase().slice(0, 4);
-    joinRoom(urlCode);
-  }
-
-  window.addEventListener('load', () => {
-    if (document.getElementById('lobby-create')) {
-      createRoom();
-    }
-  });
-
-  const originalOnlineClick = els.btnOnline.onclick;
-  els.btnOnline.addEventListener('click', () => {
-    if (!state.online.roomCode) {
-      createRoom();
-    }
-  });
-
-})();
-</script>
-
-</body>
-</html>
+      els.screenLobby.classList.add('
