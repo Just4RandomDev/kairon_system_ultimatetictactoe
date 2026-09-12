@@ -281,6 +281,13 @@
     font-weight: 700;
   }
 
+  .lobby-sep {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+    margin: 16px 0;
+  }
+
   .code-input {
     width: 100%;
     background: #141419;
@@ -366,8 +373,21 @@
     <button class="small-btn" id="btn-lobby-back">Volver</button>
   </div>
 
-  <div class="lobby-box" id="lobby-create">
-    <h2>Crear sala</h2>
+  <div class="lobby-box" id="lobby-start">
+    <h2>Crear o unirse</h2>
+    <div class="lobby-row">
+      <button class="small-btn" id="btn-create-room">Crear sala</button>
+    </div>
+    <div class="lobby-sep">— o —</div>
+    <input class="code-input" id="join-code" maxlength="4" placeholder="ABCD" autocomplete="off" spellcheck="false">
+    <div class="lobby-row">
+      <button class="small-btn" id="btn-join">Unirse</button>
+    </div>
+    <div class="lobby-status" id="join-status"></div>
+  </div>
+
+  <div class="lobby-box hidden" id="lobby-create">
+    <h2>Sala creada</h2>
     <div class="code-display" id="my-code">----</div>
     <div class="lobby-row">
       <button class="small-btn" id="btn-copy-code">Copiar código</button>
@@ -375,15 +395,6 @@
     <div class="lobby-status" id="create-status">
       <span class="dot"></span> Esperando a otro jugador...
     </div>
-  </div>
-
-  <div class="lobby-box" id="lobby-join">
-    <h2>Unirse a sala</h2>
-    <input class="code-input" id="join-code" maxlength="4" placeholder="ABCD" autocomplete="off" spellcheck="false">
-    <div class="lobby-row">
-      <button class="small-btn" id="btn-join">Unirse</button>
-    </div>
-    <div class="lobby-status" id="join-status"></div>
   </div>
 </div>
 
@@ -461,11 +472,12 @@
     btnRestart: document.getElementById('btn-restart'),
     btnBot: document.getElementById('btn-bot'),
     btnOnline: document.getElementById('btn-online'),
+    lobbyStart: document.getElementById('lobby-start'),
     lobbyCreate: document.getElementById('lobby-create'),
-    lobbyJoin: document.getElementById('lobby-join'),
     myCode: document.getElementById('my-code'),
     joinCode: document.getElementById('join-code'),
     btnJoin: document.getElementById('btn-join'),
+    btnCreateRoom: document.getElementById('btn-create-room'),
     btnCopyCode: document.getElementById('btn-copy-code'),
     btnLobbyBack: document.getElementById('btn-lobby-back'),
     createStatus: document.getElementById('create-status'),
@@ -998,6 +1010,8 @@
     state.online.handler = handler;
 
     els.myCode.textContent = code;
+    els.lobbyStart.classList.add('hidden');
+    els.lobbyCreate.classList.remove('hidden');
   }
 
   function leaveRoom(silent) {
@@ -1027,8 +1041,8 @@
     els.screenGame.classList.add('hidden');
     els.screenLobby.classList.add('hidden');
     els.screenMode.classList.remove('hidden');
-    els.lobbyCreate.classList.remove('hidden');
-    els.lobbyJoin.classList.remove('hidden');
+    els.lobbyStart.classList.remove('hidden');
+    els.lobbyCreate.classList.add('hidden');
     els.joinCode.value = '';
     els.joinStatus.textContent = '';
     els.createStatus.innerHTML = '<span class="dot"></span> Esperando a otro jugador...';
@@ -1052,11 +1066,15 @@
   els.btnOnline.addEventListener('click', () => {
     els.screenMode.classList.add('hidden');
     els.screenLobby.classList.remove('hidden');
+    els.lobbyStart.classList.remove('hidden');
+    els.lobbyCreate.classList.add('hidden');
+    els.joinStatus.textContent = '';
+  });
+
+  els.btnCreateRoom.addEventListener('click', () => {
+    els.lobbyStart.classList.add('hidden');
     els.lobbyCreate.classList.remove('hidden');
-    els.lobbyJoin.classList.remove('hidden');
-    if (!state.online.roomCode) {
-      createRoom();
-    }
+    createRoom();
   });
 
   els.btnLobbyBack.addEventListener('click', () => {
@@ -1096,6 +1114,8 @@
   if (urlCode) {
     els.screenMode.classList.add('hidden');
     els.screenLobby.classList.remove('hidden');
+    els.lobbyStart.classList.add('hidden');
+    els.lobbyCreate.classList.remove('hidden');
     els.joinCode.value = urlCode.toUpperCase().slice(0, 4);
     joinRoom(urlCode);
   }
